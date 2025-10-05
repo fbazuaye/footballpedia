@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Search, Menu, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Menu, X, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -7,6 +8,8 @@ import { TypingIndicator } from "@/components/TypingIndicator";
 import { ConversationHistory } from "@/components/ConversationHistory";
 import { useFootballChat } from "@/hooks/useFootballChat";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 
 interface Conversation {
   id: string;
@@ -16,32 +19,112 @@ interface Conversation {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>();
   
-  const { messages, isLoading, sendMessage, clearMessages } = useFootballChat();
+  const { messages, isLoading, sendMessage, clearMessages } = useFootballChat(
+    currentConversationId,
+    user?.id
+  );
+
+  // Authentication check
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Load user conversations
+  useEffect(() => {
+    if (!user) return;
+
+    const loadConversations = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (data) {
+        setConversations(data.map(c => ({
+          id: c.id,
+          title: c.title,
+          timestamp: new Date(c.created_at),
+          messages: [],
+        })));
+      }
+    };
+
+    loadConversations();
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !user) return;
 
     const query = input;
     setInput("");
-    await sendMessage(query);
 
-    // Save to conversation history
+    // Create new conversation if first message
     if (!currentConversationId) {
+      const convId = crypto.randomUUID();
       const newConv: Conversation = {
-        id: Date.now().toString(),
+        id: convId,
         title: query.slice(0, 50) + (query.length > 50 ? "..." : ""),
         timestamp: new Date(),
         messages: [],
       };
+      
+      // Save to database
+      await supabase.from("conversations").insert({
+        id: convId,
+        title: newConv.title,
+        user_id: user.id,
+      });
+      
       setConversations((prev) => [newConv, ...prev]);
-      setCurrentConversationId(newConv.id);
+      setCurrentConversationId(convId);
     }
+
+    // Save user message to database
+    if (currentConversationId) {
+      await supabase.from("chat_messages").insert({
+        conversation_id: currentConversationId,
+        role: "user",
+        content: query,
+        user_id: user.id,
+      });
+    }
+
+    await sendMessage(query);
   };
 
   const handleNewConversation = () => {
@@ -50,16 +133,26 @@ const Index = () => {
     setSidebarOpen(false);
   };
 
-  const handleSelectConversation = (id: string) => {
-    const conv = conversations.find((c) => c.id === id);
-    if (conv) {
-      setCurrentConversationId(id);
-      // In a real app, you'd restore the messages here
-      setSidebarOpen(false);
+  const handleSelectConversation = async (id: string) => {
+    setCurrentConversationId(id);
+    
+    // Load conversation messages from database
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: true });
+    
+    if (data) {
+      clearMessages();
+      // Messages would be restored here in a more complete implementation
     }
+    
+    setSidebarOpen(false);
   };
 
-  const handleDeleteConversation = (id: string) => {
+  const handleDeleteConversation = async (id: string) => {
+    await supabase.from("conversations").delete().eq("id", id);
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (currentConversationId === id) {
       handleNewConversation();
@@ -88,14 +181,25 @@ const Index = () => {
             </h1>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNewConversation}
-            className="hidden sm:flex"
-          >
-            New Search
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewConversation}
+              className="hidden sm:flex"
+            >
+              New Search
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
       </header>
 
