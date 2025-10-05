@@ -1,13 +1,12 @@
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-export const useFootballChat = (conversationId?: string, userId?: string) => {
+export const useFootballChat = (conversationId?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -92,16 +91,6 @@ export const useFootballChat = (conversationId?: string, userId?: string) => {
         }
       }
 
-      // Save AI response to database
-      if (assistantContent && conversationId && userId) {
-        await supabase.from("chat_messages").insert({
-          conversation_id: conversationId,
-          role: "assistant",
-          content: assistantContent,
-          user_id: userId,
-        });
-      }
-
       // Process remaining buffer
       if (buffer.trim()) {
         for (let line of buffer.split("\n")) {
@@ -141,7 +130,7 @@ export const useFootballChat = (conversationId?: string, userId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, toast, conversationId, userId]);
+  }, [messages, toast]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
