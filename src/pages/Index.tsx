@@ -26,24 +26,57 @@ const Index = () => {
     currentConversationId
   );
 
-  // Load conversations from localStorage on mount
+  // Load conversations from database on mount
   useEffect(() => {
-    const savedConversations = localStorage.getItem("footballpedia_conversations");
-    if (savedConversations) {
-      const parsed = JSON.parse(savedConversations);
-      setConversations(parsed.map((c: any) => ({
-        ...c,
-        timestamp: new Date(c.timestamp)
-      })));
-    }
+    const loadConversations = async () => {
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (data && !error) {
+        setConversations(
+          data.map((c) => ({
+            id: c.id,
+            title: c.title,
+            timestamp: new Date(c.created_at),
+            messages: [],
+          }))
+        );
+      }
+    };
+    loadConversations();
   }, []);
 
-  // Save conversations to localStorage whenever they change
+  // Load messages when conversation is selected
   useEffect(() => {
-    if (conversations.length > 0) {
-      localStorage.setItem("footballpedia_conversations", JSON.stringify(conversations));
-    }
-  }, [conversations]);
+    const loadMessages = async () => {
+      if (!currentConversationId) return;
+
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("conversation_id", currentConversationId)
+        .order("created_at", { ascending: true });
+
+      if (data && !error) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConversationId
+              ? {
+                  ...c,
+                  messages: data.map((msg) => ({
+                    role: msg.role as "user" | "assistant",
+                    content: msg.content,
+                  })),
+                }
+              : c
+          )
+        );
+      }
+    };
+    loadMessages();
+  }, [currentConversationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +94,12 @@ const Index = () => {
         timestamp: new Date(),
         messages: [],
       };
+
+      // Save to database
+      await supabase.from("conversations").insert({
+        id: convId,
+        title: newConv.title,
+      });
       
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(convId);
@@ -81,7 +120,11 @@ const Index = () => {
     setSidebarOpen(false);
   };
 
-  const handleDeleteConversation = (id: string) => {
+  const handleDeleteConversation = async (id: string) => {
+    // Delete from database
+    await supabase.from("chat_messages").delete().eq("conversation_id", id);
+    await supabase.from("conversations").delete().eq("id", id);
+
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (currentConversationId === id) {
       handleNewConversation();

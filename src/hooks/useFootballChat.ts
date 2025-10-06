@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,6 +12,18 @@ export const useFootballChat = (conversationId?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const saveMessageToDb = useCallback(async (convId: string, role: string, content: string) => {
+    try {
+      await supabase.from("chat_messages").insert({
+        conversation_id: convId,
+        role,
+        content,
+      });
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  }, []);
+
   const sendMessage = useCallback(async (userMessage: string) => {
     if (!userMessage.trim()) return;
 
@@ -21,6 +34,11 @@ export const useFootballChat = (conversationId?: string) => {
 
     setMessages((prev) => [...prev, newUserMessage]);
     setIsLoading(true);
+
+    // Save user message to database
+    if (conversationId) {
+      await saveMessageToDb(conversationId, "user", userMessage);
+    }
 
     let assistantContent = "";
 
@@ -120,6 +138,11 @@ export const useFootballChat = (conversationId?: string) => {
           }
         }
       }
+
+      // Save assistant response to database
+      if (conversationId && assistantContent) {
+        await saveMessageToDb(conversationId, "assistant", assistantContent);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast({
@@ -130,7 +153,7 @@ export const useFootballChat = (conversationId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, toast]);
+  }, [messages, toast, conversationId, saveMessageToDb]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
