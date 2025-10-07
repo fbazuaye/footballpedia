@@ -95,11 +95,17 @@ const Index = () => {
         messages: [],
       };
 
-      // Save to database
-      await supabase.from("conversations").insert({
-        id: convId,
-        title: newConv.title,
-      });
+      // Save to database (only if authenticated to satisfy RLS)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("conversations").insert([
+          {
+            id: convId,
+            title: newConv.title,
+            user_id: user.id,
+          },
+        ]);
+      }
       
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(convId);
