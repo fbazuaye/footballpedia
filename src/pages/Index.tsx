@@ -252,38 +252,8 @@ const Index = () => {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {!userEmail ? (
-            /* Not logged in - Show welcome */
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl space-y-8 animate-fade-in text-center">
-                <div className="space-y-4">
-                  <h2 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                    Welcome to FootballPedia
-                  </h2>
-                  <p className="text-lg text-muted-foreground">
-                    Your AI-powered football encyclopedia. Get instant answers about players, teams, matches, and more.
-                  </p>
-                </div>
-
-                <div className="flex gap-4 justify-center">
-                  <Button
-                    size="lg"
-                    onClick={() => navigate("/auth?mode=signup")}
-                  >
-                    Sign Up
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => navigate("/auth?mode=login")}
-                  >
-                    Login
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : !showResults ? (
-            /* Logged in - Homepage with Search */
+          {!showResults ? (
+            /* Homepage with Search */
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="w-full max-w-2xl space-y-8 animate-fade-in">
                 <div className="text-center space-y-4">
