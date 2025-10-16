@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Menu, X, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -17,14 +18,39 @@ interface Conversation {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>();
+  const [userEmail, setUserEmail] = useState<string>("");
   
   const { messages, isLoading, sendMessage, clearMessages } = useFootballChat(
     currentConversationId
   );
+
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+      setUserEmail(user.email || "");
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUserEmail(session.user.email || "");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   // Load conversations from database on mount
   useEffect(() => {
@@ -96,9 +122,13 @@ const Index = () => {
       };
 
       // Save to database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       await supabase.from("conversations").insert({
         id: convId,
         title: newConv.title,
+        user_id: user.id,
       });
       
       setConversations((prev) => [newConv, ...prev]);
@@ -131,6 +161,11 @@ const Index = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
   const showResults = messages.length > 0;
 
   return (
@@ -153,14 +188,27 @@ const Index = () => {
             </h1>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNewConversation}
-            className="hidden sm:flex"
-          >
-            New Search
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              {userEmail}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewConversation}
+              className="hidden sm:flex"
+            >
+              New Search
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 

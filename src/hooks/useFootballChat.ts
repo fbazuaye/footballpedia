@@ -14,10 +14,14 @@ export const useFootballChat = (conversationId?: string) => {
 
   const saveMessageToDb = useCallback(async (convId: string, role: string, content: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       await supabase.from("chat_messages").insert({
         conversation_id: convId,
         role,
         content,
+        user_id: user.id,
       });
     } catch (error) {
       console.error("Error saving message:", error);
