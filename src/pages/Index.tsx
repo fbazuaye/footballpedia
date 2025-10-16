@@ -33,24 +33,22 @@ const Index = () => {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
+      if (user) {
+        setUserEmail(user.email || "");
       }
-      setUserEmail(user.email || "");
     };
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
+      if (session) {
         setUserEmail(session.user.email || "");
+      } else {
+        setUserEmail("");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   // Load conversations from database on mount
   useEffect(() => {
@@ -174,14 +172,16 @@ const Index = () => {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
+            {userEmail && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden"
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            )}
             
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               FootballPedia
@@ -189,49 +189,101 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {userEmail}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNewConversation}
-              className="hidden sm:flex"
-            >
-              New Search
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            {userEmail ? (
+              <>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {userEmail}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNewConversation}
+                  className="hidden sm:flex"
+                >
+                  New Search
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/auth?mode=login")}
+                >
+                  Login
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/auth?mode=signup")}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div
-          className={`${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 transition-transform duration-300 ease-in-out`}
-        >
-          <ConversationHistory
-            conversations={conversations}
-            currentConversationId={currentConversationId}
-            onSelectConversation={handleSelectConversation}
-            onDeleteConversation={handleDeleteConversation}
-            onNewConversation={handleNewConversation}
-          />
-        </div>
+        {/* Sidebar - only show when logged in */}
+        {userEmail && (
+          <div
+            className={`${
+              sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 transition-transform duration-300 ease-in-out`}
+          >
+            <ConversationHistory
+              conversations={conversations}
+              currentConversationId={currentConversationId}
+              onSelectConversation={handleSelectConversation}
+              onDeleteConversation={handleDeleteConversation}
+              onNewConversation={handleNewConversation}
+            />
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {!showResults ? (
-            /* Homepage - Centered Search */
+          {!userEmail ? (
+            /* Not logged in - Show welcome */
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="w-full max-w-2xl space-y-8 animate-fade-in text-center">
+                <div className="space-y-4">
+                  <h2 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                    Welcome to FootballPedia
+                  </h2>
+                  <p className="text-lg text-muted-foreground">
+                    Your AI-powered football encyclopedia. Get instant answers about players, teams, matches, and more.
+                  </p>
+                </div>
+
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    onClick={() => navigate("/auth?mode=signup")}
+                  >
+                    Sign Up
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => navigate("/auth?mode=login")}
+                  >
+                    Login
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : !showResults ? (
+            /* Logged in - Homepage with Search */
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="w-full max-w-2xl space-y-8 animate-fade-in">
                 <div className="text-center space-y-4">
