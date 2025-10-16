@@ -170,35 +170,35 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             {userEmail && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden"
+                className="lg:hidden p-2"
               >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {sidebarOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
             )}
             
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               FootballPedia
             </h1>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {userEmail ? (
               <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                <span className="text-xs sm:text-sm text-muted-foreground hidden md:inline max-w-[150px] truncate">
                   {userEmail}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleNewConversation}
-                  className="hidden sm:flex"
+                  className="hidden md:flex text-xs sm:text-sm"
                 >
                   New Search
                 </Button>
@@ -207,8 +207,9 @@ const Index = () => {
                   size="sm"
                   onClick={handleLogout}
                   title="Logout"
+                  className="p-2"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </>
             ) : (
@@ -217,14 +218,16 @@ const Index = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/auth?mode=login")}
+                  className="text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  Login
+                  Log in
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => navigate("/auth?mode=signup")}
+                  className="text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  Sign Up
+                  Sign up
                 </Button>
               </>
             )}
@@ -238,7 +241,7 @@ const Index = () => {
           <div
             className={`${
               sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 transition-transform duration-300 ease-in-out`}
+            } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-40 w-64 sm:w-72 transition-transform duration-300 ease-in-out`}
           >
             <ConversationHistory
               conversations={conversations}
@@ -254,29 +257,29 @@ const Index = () => {
         <main className="flex-1 flex flex-col overflow-hidden">
           {!showResults ? (
             /* Homepage with Search */
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl space-y-8 animate-fade-in">
-                <div className="text-center space-y-4">
-                  <h2 className="text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+            <div className="flex-1 flex items-center justify-center p-3 sm:p-4 md:p-6">
+              <div className="w-full max-w-2xl space-y-6 sm:space-y-8 animate-fade-in">
+                <div className="text-center space-y-3 sm:space-y-4">
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent px-2">
                     FootballPedia
                   </h2>
-                  <p className="text-lg text-muted-foreground">
+                  <p className="text-base sm:text-lg text-muted-foreground px-2">
                     Your AI-powered football encyclopedia
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <form onSubmit={handleSubmit} className="relative px-2">
+                  <Search className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything about football..."
-                    className="pl-12 pr-4 h-14 text-lg rounded-full border-2 border-border focus:border-primary transition-colors shadow-md"
+                    className="pl-10 sm:pl-12 pr-4 h-12 sm:h-14 text-base sm:text-lg rounded-full border-2 border-border focus:border-primary transition-colors shadow-md w-full"
                     autoFocus
                   />
                 </form>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm px-2">
                   {[
                     "Who won the 2018 World Cup?",
                     "Tell me about Lionel Messi",
@@ -288,7 +291,7 @@ const Index = () => {
                       onClick={() => {
                         setInput(suggestion);
                       }}
-                      className="p-3 text-left rounded-lg border border-border hover:border-primary hover:bg-muted/50 transition-all"
+                      className="p-2.5 sm:p-3 text-left rounded-lg border border-border hover:border-primary hover:bg-muted/50 transition-all"
                     >
                       {suggestion}
                     </button>
@@ -299,8 +302,8 @@ const Index = () => {
           ) : (
             /* Results View */
             <>
-              <ScrollArea className="flex-1 p-4">
-                <div className="max-w-4xl mx-auto space-y-6 pb-6">
+              <ScrollArea className="flex-1 p-2 sm:p-4">
+                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4 sm:pb-6">
                   {messages.map((message, index) => (
                     <ChatMessage
                       key={index}
@@ -313,22 +316,22 @@ const Index = () => {
               </ScrollArea>
 
               {/* Follow-up Input */}
-              <div className="border-t border-border bg-background/80 backdrop-blur-md p-4">
+              <div className="border-t border-border bg-background/80 backdrop-blur-md p-2 sm:p-4">
                 <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative">
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask a follow-up question..."
-                    className="pr-12 h-12 rounded-full border-2 border-border focus:border-primary transition-colors"
+                    className="pr-10 sm:pr-12 h-10 sm:h-12 text-sm sm:text-base rounded-full border-2 border-border focus:border-primary transition-colors"
                     disabled={isLoading}
                   />
                   <Button
                     type="submit"
                     size="sm"
                     disabled={isLoading || !input.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 rounded-full h-7 w-7 sm:h-8 sm:w-8 p-0"
                   >
-                    <Search className="w-4 h-4" />
+                    <Search className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </form>
               </div>
@@ -339,10 +342,11 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="border-t border-border bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-          <p>
-            Designed By <span className="font-semibold text-foreground">Frank Bazuaye</span> | 
-            Powered By <span className="font-semibold text-primary">LiveGig Ltd</span>
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4 text-center text-xs sm:text-sm text-muted-foreground">
+          <p className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+            <span>Designed By <span className="font-semibold text-foreground">Frank Bazuaye</span></span>
+            <span className="hidden sm:inline">|</span>
+            <span>Powered By <span className="font-semibold text-primary">LiveGig Ltd</span></span>
           </p>
         </div>
       </footer>
