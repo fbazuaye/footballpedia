@@ -27,7 +27,7 @@ export default function Auth() {
         });
         if (error) throw error;
         toast.success("Logged in successfully!");
-        navigate("/chat");
+        navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -38,7 +38,7 @@ export default function Auth() {
         });
         if (error) throw error;
         toast.success("Account created successfully!");
-        navigate("/chat");
+        navigate("/");
       }
     } catch (error: any) {
       toast.error(error.message);
