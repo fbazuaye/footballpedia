@@ -50,27 +50,41 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load conversations from database on mount
+  // Load conversations from database or localStorage on mount
   useEffect(() => {
     const loadConversations = async () => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Load from database for authenticated users
+        const { data, error } = await supabase
+          .from("conversations")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (data && !error) {
+        if (data && !error) {
+          setConversations(
+            data.map((c) => ({
+              id: c.id,
+              title: c.title,
+              timestamp: new Date(c.created_at),
+              messages: [],
+            }))
+          );
+        }
+      } else {
+        // Load from localStorage for non-authenticated users
+        const localConvs = JSON.parse(localStorage.getItem("local_conversations") || "[]");
         setConversations(
-          data.map((c) => ({
-            id: c.id,
-            title: c.title,
-            timestamp: new Date(c.created_at),
-            messages: [],
+          localConvs.map((c: any) => ({
+            ...c,
+            timestamp: new Date(c.timestamp),
           }))
         );
       }
     };
     loadConversations();
-  }, []);
+  }, [userEmail]);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -119,15 +133,20 @@ const Index = () => {
         messages: [],
       };
 
-      // Save to database
+      // Save to database only if user is authenticated
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      await supabase.from("conversations").insert({
-        id: convId,
-        title: newConv.title,
-        user_id: user.id,
-      });
+      if (user) {
+        await supabase.from("conversations").insert({
+          id: convId,
+          title: newConv.title,
+          user_id: user.id,
+        });
+      } else {
+        // Save to localStorage for non-authenticated users
+        const localConvs = JSON.parse(localStorage.getItem("local_conversations") || "[]");
+        localConvs.unshift({ ...newConv, timestamp: newConv.timestamp.toISOString() });
+        localStorage.setItem("local_conversations", JSON.stringify(localConvs));
+      }
       
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(convId);
@@ -149,9 +168,18 @@ const Index = () => {
   };
 
   const handleDeleteConversation = async (id: string) => {
-    // Delete from database
-    await supabase.from("chat_messages").delete().eq("conversation_id", id);
-    await supabase.from("conversations").delete().eq("id", id);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // Delete from database for authenticated users
+      await supabase.from("chat_messages").delete().eq("conversation_id", id);
+      await supabase.from("conversations").delete().eq("id", id);
+    } else {
+      // Delete from localStorage for non-authenticated users
+      const localConvs = JSON.parse(localStorage.getItem("local_conversations") || "[]");
+      const filtered = localConvs.filter((c: any) => c.id !== id);
+      localStorage.setItem("local_conversations", JSON.stringify(filtered));
+    }
 
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (currentConversationId === id) {
