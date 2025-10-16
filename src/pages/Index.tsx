@@ -163,7 +163,7 @@ const Index = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/auth");
+    navigate("/");
   };
 
   const showResults = messages.length > 0;
